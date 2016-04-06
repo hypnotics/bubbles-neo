@@ -3,20 +3,17 @@ extends layout
 block content
     h1= title
 
-    p
-        | This is a template app showing the use of&nbsp;
-        a(href='http://www.neo4j.org/', target='_blank') Neo4j
-        |  from Node.js. It uses the&nbsp;
-        a(href='https://github.com/thingdom/node-neo4j', target='_blank') node-neo4j
-        |  library, available on npm as&nbsp;
-        code neo4j
-        .
-
     p.
-        This app is a simple social network manager: it lets you add and remove
-        users and "follows" relationships between them.
+        This is a proof-of-concept for a collective intelligence platform.
+        It lets you add and remove users and "follows" relationships between them.
+        It also lets you create bubbles and relate them to other bubbles.
 
     p
         strong
             | Get started:&nbsp;
             a(href='/users') View all users
+            
+    p
+        strong
+            | Get started:&nbsp;
+            a(href='/bubbles') View all bubbles

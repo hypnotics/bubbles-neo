@@ -27,7 +27,7 @@ if ('development' == app.get('env')) {
 }
 
 app.locals({
-    title: 'Node-Neo4j Template'    // default title
+    title: 'Bubbles'    // default title
 });
 
 // Routes
@@ -42,6 +42,18 @@ app.del('/users/:username', routes.users.del);
 
 app.post('/users/:username/follow', routes.users.follow);
 app.post('/users/:username/unfollow', routes.users.unfollow);
+
+app.get('/bubbles', routes.bubbles.list);
+app.post('/bubbles', routes.bubbles.create);
+app.get('/bubbles/:title', routes.bubbles.show);
+app.post('/bubbles/:title', routes.bubbles.edit);
+app.del('/bubbles/:title', routes.bubbles.del);
+
+app.post('/bubbles/:title/relate', routes.bubbles.relate);
+app.post('/bubbles/:title/unrelate', routes.bubbles.unrelate);
+
+
+
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening at: http://localhost:%d/', app.get('port'));

@@ -1,0 +1,27 @@
+extends layout
+
+block content
+    h1 Bubbles
+
+    if bubbles.length
+        p Here are the current bubbles:
+        ul.bubbles
+            for bubble in bubbles
+                li.bubble
+                    a(href='/bubbles/#{bubble.title}') @#{bubble.title}
+    else
+        p There are no bubbles currently.
+        
+    form(action='', method='POST')
+        p Create a new bubble (A-Z and _ only):
+        span @
+        input(type='text', name='title', placeholder='title', required,
+            minlength=Bubble.VALIDATION_INFO.title.minLength,
+            maxlength=Bubble.VALIDATION_INFO.title.maxLength,
+            pattern=Bubble.VALIDATION_INFO.title.pattern.source,
+            message=Bubble.VALIDATION_INFO.title.message,
+            value=title||'')
+        input(type='submit', value='Create')
+        if error
+            span.error &nbsp;#{error}
+            

@@ -1,5 +1,5 @@
-// user.js
-// User model logic.
+// bubble.js
+// Bubble model logic.
 
 var neo4j = require('neo4j');
 var errors = require('./errors');
@@ -14,7 +14,7 @@ var db = new neo4j.GraphDatabase({
 
 // Private constructor:
 
-var User = module.exports = function User(_node) {
+var Bubble = module.exports = function Bubble(_node) {
     // All we'll really store is the node; the rest of our properties will be
     // derivable or just pass-through properties (see below).
     this._node = _node;
@@ -22,21 +22,21 @@ var User = module.exports = function User(_node) {
 
 // Public constants:
 
-User.VALIDATION_INFO = {
-    'username': {
+Bubble.VALIDATION_INFO = {
+    'title': {
         required: true,
         minLength: 2,
-        maxLength: 16,
+        maxLength: 55,
         pattern: /^[A-Za-z0-9_]+$/,
-        message: '2-16 characters; letters, numbers, and underscores only.'
+        message: '2-55 characters; letters, numbers, and underscores only.'
     },
 };
 
 // Public instance properties:
 
-// The user's username, e.g. 'aseemk'.
-Object.defineProperty(User.prototype, 'username', {
-    get: function () { return this._node.properties['username']; }
+// The bubbles's title, e.g. 'New_title'.
+Object.defineProperty(Bubble.prototype, 'title', {
+    get: function () { return this._node.properties['title']; }
 });
 
 // Private helpers:
@@ -44,13 +44,13 @@ Object.defineProperty(User.prototype, 'username', {
 // Takes the given caller-provided properties, selects only known ones,
 // validates them, and returns the known subset.
 // By default, only validates properties that are present.
-// (This allows `User.prototype.patch` to not require any.)
+// (This allows `Bubble.prototype.patch` to not require any.)
 // You can pass `true` for `required` to validate that all required properties
-// are present too. (Useful for `User.create`.)
+// are present too. (Useful for `Bubble.create`.)
 function validate(props, required) {
     var safeProps = {};
 
-    for (var prop in User.VALIDATION_INFO) {
+    for (var prop in Bubble.VALIDATION_INFO) {
         var val = props[prop];
         validateProp(prop, val, required);
         safeProps[prop] = val;
@@ -63,7 +63,7 @@ function validate(props, required) {
 // By default, ignores null/undefined/empty values, but you can pass `true` for
 // the `required` param to enforce that any required properties are present.
 function validateProp(prop, val, required) {
-    var info = User.VALIDATION_INFO[prop];
+    var info = Bubble.VALIDATION_INFO[prop];
     var message = info.message;
 
     if (!val) {
@@ -98,19 +98,19 @@ function isConstraintViolation(err) {
 
 // Public instance methods:
 
-// Atomically updates this user, both locally and remotely in the db, with the
+// Atomically updates this bubble, both locally and remotely in the db, with the
 // given property updates.
-User.prototype.patch = function (props, callback) {
+Bubble.prototype.patch = function (props, callback) {
     var safeProps = validate(props);
 
     var query = [
-        'MATCH (user:User {username: {username}})',
-        'SET user += {props}',
-        'RETURN user',
+        'MATCH (bubble:Bubble {title: {title}})',
+        'SET bubble += {props}',
+        'RETURN bubble',
     ].join('\n');
 
     var params = {
-        username: this.username,
+        title: this.title,
         props: safeProps,
     };
 
@@ -121,41 +121,41 @@ User.prototype.patch = function (props, callback) {
         params: params,
     }, function (err, results) {
         if (isConstraintViolation(err)) {
-            // TODO: This assumes username is the only relevant constraint.
+            // TODO: This assumes title is the only relevant constraint.
             // We could parse the constraint property out of the error message,
             // but it'd be nicer if Neo4j returned this data semantically.
             // Alternately, we could tweak our query to explicitly check first
-            // whether the username is taken or not.
+            // whether the title is taken or not.
             err = new errors.ValidationError(
-                'The username ‘' + props.username + '’ is taken.');
+                'The title ‘' + props.title + '’ is taken.');
         }
         if (err) return callback(err);
 
         if (!results.length) {
-            err = new Error('User has been deleted! Username: ' + self.username);
+            err = new Error('Bubble has been deleted! Title: ' + self.title);
             return callback(err);
         }
 
         // Update our node with this updated+latest data from the server:
-        self._node = results[0]['user'];
+        self._node = results[0]['bubble'];
 
         callback(null);
     });
 };
 
-User.prototype.del = function (callback) {
-    // Use a Cypher query to delete both this user and his/her following
+Bubble.prototype.del = function (callback) {
+    // Use a Cypher query to delete both this bubble and his/her following
     // relationships in one query and one network request:
     // (Note that this'll still fail if there are any relationships attached
     // of any other types, which is good because we don't expect any.)
     var query = [
-        'MATCH (user:User {username: {username}})',
-        'OPTIONAL MATCH (user) -[rel:follows]- (other)',
-        'DELETE user, rel',
+        'MATCH (bubble:Bubble {title: {title}})',
+        'OPTIONAL MATCH (bubble) -[rel:related]- (other)',
+        'DELETE bubble, rel',
     ].join('\n')
 
     var params = {
-        username: this.username,
+        title: this.title,
     };
 
     db.cypher({
@@ -166,16 +166,16 @@ User.prototype.del = function (callback) {
     });
 };
 
-User.prototype.follow = function (other, callback) {
+Bubble.prototype.relate = function (other, callback) {
     var query = [
-        'MATCH (user:User {username: {thisUsername}})',
-        'MATCH (other:User {username: {otherUsername}})',
-        'MERGE (user) -[rel:follows]-> (other)',
+        'MATCH (bubble:Bubble {title: {thisTitle}})',
+        'MATCH (other:Bubble {title: {otherTitle}})',
+        'MERGE (bubble) -[rel:related]-> (other)',
     ].join('\n')
 
     var params = {
-        thisUsername: this.username,
-        otherUsername: other.username,
+        thisTitle: this.title,
+        otherTitle: other.title,
     };
 
     db.cypher({
@@ -186,17 +186,17 @@ User.prototype.follow = function (other, callback) {
     });
 };
 
-User.prototype.unfollow = function (other, callback) {
+Bubble.prototype.unfollow = function (other, callback) {
     var query = [
-        'MATCH (user:User {username: {thisUsername}})',
-        'MATCH (other:User {username: {otherUsername}})',
-        'MATCH (user) -[rel:follows]-> (other)',
+        'MATCH (bubble:Bubble {title: {thisTitle}})',
+        'MATCH (other:Bubble {title: {otherTitle}})',
+        'MATCH (bubble) -[rel:related]-> (other)',
         'DELETE rel',
     ].join('\n')
 
     var params = {
-        thisUsername: this.username,
-        otherUsername: other.username,
+        thisTitle: this.title,
+        otherTitle: other.title,
     };
 
     db.cypher({
@@ -208,57 +208,57 @@ User.prototype.unfollow = function (other, callback) {
 };
 
 // Calls callback w/ (err, following, others), where following is an array of
-// users this user follows, and others is all other users minus him/herself.
-User.prototype.getFollowingAndOthers = function (callback) {
-    // Query all users and whether we follow each one or not:
+// bubbles this bubble follows, and others is all other bubbles minus him/herself.
+Bubble.prototype.getRelatedToAndOthers = function (callback) {
+    // Query all bubbles and whether we follow each one or not:
     var query = [
-        'MATCH (user:User {username: {thisUsername}})',
-        'MATCH (other:User)',
-        'OPTIONAL MATCH (user) -[rel:follows]-> (other)',
+        'MATCH (bubble:Bubble {title: {thisTitle}})',
+        'MATCH (other:Bubble)',
+        'OPTIONAL MATCH (bubble) -[rel:related]-> (other)',
         'RETURN other, COUNT(rel)', // COUNT(rel) is a hack for 1 or 0
     ].join('\n')
 
     var params = {
-        thisUsername: this.username,
+        thisTitle: this.title,
     };
 
-    var user = this;
+    var bubble = this;
     db.cypher({
         query: query,
         params: params,
     }, function (err, results) {
         if (err) return callback(err);
 
-        var following = [];
+        var relatedTo = [];
         var others = [];
 
         for (var i = 0; i < results.length; i++) {
-            var other = new User(results[i]['other']);
-            var follows = results[i]['COUNT(rel)'];
+            var other = new Bubble(results[i]['other']);
+            var related = results[i]['COUNT(rel)'];
 
-            if (user.username === other.username) {
+            if (bubble.title === other.title) {
                 continue;
-            } else if (follows) {
-                following.push(other);
+            } else if (related) {
+                relatedTo.push(other);
             } else {
                 others.push(other);
             }
         }
 
-        callback(null, following, others);
+        callback(null, relatedTo, others);
     });
 };
 
 // Static methods:
 
-User.get = function (username, callback) {
+Bubble.get = function (title, callback) {
     var query = [
-        'MATCH (user:User {username: {username}})',
-        'RETURN user',
+        'MATCH (bubble:Bubble {title: {title}})',
+        'RETURN bubble',
     ].join('\n')
 
     var params = {
-        username: username,
+        title: title,
     };
 
     db.cypher({
@@ -267,36 +267,36 @@ User.get = function (username, callback) {
     }, function (err, results) {
         if (err) return callback(err);
         if (!results.length) {
-            err = new Error('No such user with username: ' + username);
+            err = new Error('No such bubble with title: ' + title);
             return callback(err);
         }
-        var user = new User(results[0]['user']);
-        callback(null, user);
+        var bubble = new Bubble(results[0]['bubble']);
+        callback(null, bubble);
     });
 };
 
-User.getAll = function (callback) {
+Bubble.getAll = function (callback) {
     var query = [
-        'MATCH (user:User)',
-        'RETURN user',
+        'MATCH (bubble:Bubble)',
+        'RETURN bubble',
     ].join('\n');
 
     db.cypher({
         query: query,
     }, function (err, results) {
         if (err) return callback(err);
-        var users = results.map(function (result) {
-            return new User(result['user']);
+        var bubbles = results.map(function (result) {
+            return new Bubble(result['bubble']);
         });
-        callback(null, users);
+        callback(null, bubbles);
     });
 };
 
-// Creates the user and persists (saves) it to the db, incl. indexing it:
-User.create = function (props, callback) {
+// Creates the bubble and persists (saves) it to the db, incl. indexing it:
+Bubble.create = function (props, callback) {
     var query = [
-        'CREATE (user:User {props})',
-        'RETURN user',
+        'CREATE (bubble:Bubble {props})',
+        'RETURN bubble',
     ].join('\n');
 
     var params = {
@@ -308,32 +308,32 @@ User.create = function (props, callback) {
         params: params,
     }, function (err, results) {
         if (isConstraintViolation(err)) {
-            // TODO: This assumes username is the only relevant constraint.
+            // TODO: This assumes title is the only relevant constraint.
             // We could parse the constraint property out of the error message,
             // but it'd be nicer if Neo4j returned this data semantically.
             // Alternately, we could tweak our query to explicitly check first
-            // whether the username is taken or not.
+            // whether the title is taken or not.
             err = new errors.ValidationError(
-                'The username ‘' + props.username + '’ is taken.');
+                'The title ‘' + props.title + '’ is taken.');
         }
         if (err) return callback(err);
-        var user = new User(results[0]['user']);
-        callback(null, user);
+        var bubble = new Bubble(results[0]['bubble']);
+        callback(null, bubble);
     });
 };
 
 // Static initialization:
 
-// Register our unique username constraint.
+// Register our unique title constraint.
 // TODO: This is done async'ly (fire and forget) here for simplicity,
 // but this would be better as a formal schema migration script or similar.
 db.createConstraint({
-    label: 'User',
-    property: 'username',
+    label: 'Bubble',
+    property: 'title',
 }, function (err, constraint) {
     if (err) throw err;     // Failing fast for now, by crash the application.
     if (constraint) {
-        console.log('(Registered unique usernames constraint.)');
+        console.log('(Registered unique titles constraint.)');
     } else {
         // Constraint already present; no need to log anything.
     }

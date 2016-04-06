@@ -1,0 +1,50 @@
+extends layout
+
+block content
+    h1 @#{bubble.title}
+
+    p
+        a(href='/bubbles') Back to everyone
+
+    if relatedTo.length
+        p @#{bubble.title} is related to #{relatedTo.length} bubbles:
+        // TODO should say 'user' if only one! ;)
+        ul.bubbles
+            for other in relatedTo
+                li.bubble
+                    form(action='/bubbles/#{bubble.title}/unrelate', method='POST')
+                        a(href='/bubbles/#{other.title}') @#{other.title}
+                        input(type='hidden', name='otherTitle', value='#{other.title}')
+                        input(type='submit', class='unrelate', value='x')
+    else
+        p @#{bubble.title} isn't related to anything currently.
+
+    if others.length
+        form(action='/bubbles/#{bubble.title}/relate', method='POST')
+            p Relate @#{bubble.title} to:
+            label
+                select(name='otherTitle', required)
+                    option(value='')
+                    for other in others
+                        option(value='#{other.title}') @#{other.title}
+            input(type='submit', value='Relate')
+    else
+        p There's no one else left for @#{bubble.title} to relate to!
+
+    form(action='/bubbles/#{bubble.title}', method='POST')
+        p Edit this bubble:
+        span @
+        input(type='text', name='title', placeholder='#{bubble.title}', required,
+            minlength=Bubble.VALIDATION_INFO.title.minLength,
+            maxlength=Bubble.VALIDATION_INFO.title.maxLength,
+            pattern=Bubble.VALIDATION_INFO.title.pattern.source,
+            message=Bubble.VALIDATION_INFO.title.message,
+            value=title||'')
+        input(type='submit', value='Update')
+        if error
+            span.error &nbsp;#{error}
+
+    form(action='/bubbles/#{bubble.title}', method='POST', onsubmit='return confirm("Are you sure?");')
+        p And if you're feeling destructive…
+        input(type='hidden', name='_method', value='DELETE')
+        input(type='submit', value='Delete Bubble')
