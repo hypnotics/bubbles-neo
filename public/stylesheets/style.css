@@ -12,3 +12,11 @@ strong a {
 .error {
   color: #800;
 }
+
+div.bubble {
+  background-color: aliceblue;
+  border: 1px solid black;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  padding-left: 10px;  padding-right: 10px;
+}
