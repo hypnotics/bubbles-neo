@@ -155,7 +155,7 @@ var BubbleDisplayList = React.createClass({
   
   getMessage: function() {
     // No bubbles exist
-    if (this.props.data.length == 0) {
+    if (this.props.bubbles.length == 0) {
       return (
         <p>
           There are no bubbles right now.
@@ -172,7 +172,7 @@ var BubbleDisplayList = React.createClass({
   },
   
   getBubbles: function() {
-    return this.props.data.map(function(bubble) {
+    return this.props.bubbles.map(function(bubble) {
         return (
           <Bubble title={bubble.title} key={bubble.id}>
             {bubble.text}
@@ -219,8 +219,25 @@ var TutorialLink = React.createClass({
 */
 var PageRoot = React.createClass({
   getInitialState: function() {
-    return {data: [ {"id":0, "title":"Bubble 1", "text":"This is bubble content."},
+    return {bubbles: [ {"id":0, "title":"Bubble 1", "text":"This is bubble content."},
                   {"id":1, "title":"Bubble 2", "text":"This is also bubble content."}]};
+  },
+  
+  componentDidMount: function() {
+    $.ajax({
+      url: this.props.url, 
+      type: 'GET', 
+      dataType: 'json',
+      contentType: 'application/json', 
+      data: JSON.stringify(this.state),
+      success: function(data) {
+        console.log(data);
+        this.setState({bubbles:data});
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
   },
   
   render: function() {
@@ -237,7 +254,7 @@ var PageRoot = React.createClass({
         
         <TutorialLink href="./bubbles">View all bubbles</TutorialLink>
         
-        <BubbleDisplayList data={this.state.data}></BubbleDisplayList>
+        <BubbleDisplayList bubbles={this.state.bubbles}></BubbleDisplayList>
         
         <CommentBox url="./scripts/api/comments.json" pollInterval={2000}/>
       </div>
@@ -246,6 +263,6 @@ var PageRoot = React.createClass({
 })
 
 ReactDOM.render(
-  <PageRoot></PageRoot>,
+  <PageRoot url="/bubbles"></PageRoot>,
   document.getElementById('content')
 );
