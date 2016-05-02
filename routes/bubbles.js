@@ -16,12 +16,8 @@ function getBubbleURL(bubble) {
 exports.list = function (req, res, next) {
     Bubble.getAll(function (err, bubbles) {
         if (err) return next(err);
-        res.render('bubbles', {
-            Bubble: Bubble,
-            bubbles: bubbles,
-            title: req.query.title,   // Support pre-filling create form
-            error: req.query.error,     // Errors creating; see create route
-        });
+        // Here we returning bubbles as json result
+        res.json(bubbles);
     });
 };
 
