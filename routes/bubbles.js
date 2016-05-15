@@ -17,7 +17,13 @@ exports.list = function (req, res, next) {
     Bubble.getAll(function (err, bubbles) {
         if (err) return next(err);
         // Here we returning bubbles as json result
-        res.json(bubbles);
+        res.json(bubbles.map(function(bubble) {
+            return {
+                id: bubble._node._id,
+                title: bubble._node.properties.title,
+                text: ''
+            };
+        }));
     });
 };
 
